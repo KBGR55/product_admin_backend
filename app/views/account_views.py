@@ -8,39 +8,6 @@ from app.middleware.jwt_middleware import create_token, extract_token, verify_to
 
 @view_config(route_name='register_account', renderer='json')
 def register_account(request):
-    """
-    Registrar cuenta
-    ---
-    tags:
-      - Autenticación
-    summary: Crear cuenta
-    description: Crea una nueva cuenta de acceso para un usuario
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              user_id:
-                type: integer
-                example: 1
-              email:
-                type: string
-                format: email
-                example: "juan@example.com"
-              password:
-                type: string
-                example: "MiContraseña123!"
-            required: [user_id, email, password]
-    responses:
-      201:
-        description: Cuenta creada exitosamente
-      400:
-        description: Error en los datos
-      404:
-        description: Usuario no encontrado
-    """
     try:
         data = request.json_body
         db = SessionLocal()
@@ -68,45 +35,6 @@ def register_account(request):
 
 @view_config(route_name='login', renderer='json')
 def login(request):
-    """
-    Iniciar sesión
-    ---
-    tags:
-      - Autenticación
-    summary: Login
-    description: Inicia sesión y obtiene un token JWT
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              email:
-                type: string
-                format: email
-                example: "juan@example.com"
-              password:
-                type: string
-                example: "MiContraseña123!"
-            required: [email, password]
-    responses:
-      200:
-        description: Inicio de sesión exitoso
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                token:
-                  type: string
-                user_id:
-                  type: integer
-      401:
-        description: Correo o contraseña incorrectos
-    """
     try:
         data = request.json_body
         db = SessionLocal()
@@ -129,40 +57,6 @@ def login(request):
 
 @view_config(route_name='change_password', renderer='json')
 def change_password(request):
-    """
-    Cambiar contraseña
-    ---
-    tags:
-      - Autenticación
-    summary: Cambiar contraseña
-    description: Cambia la contraseña de la cuenta autenticada
-    parameters:
-      - in: header
-        name: Authorization
-        schema:
-          type: string
-        required: true
-        description: "Bearer token"
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              current_password:
-                type: string
-              new_password:
-                type: string
-            required: [current_password, new_password]
-    responses:
-      200:
-        description: Contraseña actualizada exitosamente
-      401:
-        description: Token inválido o contraseña incorrecta
-      404:
-        description: Cuenta no encontrada
-    """
     try:
         token = extract_token(request)
         if not token:
@@ -193,22 +87,4 @@ def change_password(request):
 
 @view_config(route_name='logout', renderer='json')
 def logout(request):
-    """
-    Cerrar sesión
-    ---
-    tags:
-      - Autenticación
-    summary: Logout
-    description: Cierra la sesión del usuario
-    parameters:
-      - in: header
-        name: Authorization
-        schema:
-          type: string
-        required: true
-        description: "Bearer token"
-    responses:
-      200:
-        description: Sesión cerrada exitosamente
-    """
     return {'message': 'Sesión cerrada exitosamente'}

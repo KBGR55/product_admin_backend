@@ -8,59 +8,11 @@ from datetime import datetime
 
 @view_config(route_name='create_user', renderer='json')
 def create_user(request):
-    """
-    Crear un nuevo usuario
-    ---
-    tags:
-      - Usuarios
-    summary: Crear usuario
-    description: Crea un nuevo usuario en el sistema
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              first_name:
-                type: string
-                example: Juan
-              last_name:
-                type: string
-                example: Pérez
-              birth_date:
-                type: string
-                format: date
-                example: "1990-05-15"
-              identity_number:
-                type: string
-                example: "1234567890"
-              identity_type:
-                type: string
-                enum: [RUC, PASSPORT, FOREIGN_ID]
-              gender:
-                type: string
-                enum: [MALE, FEMALE, OTHER]
-            required: [first_name, last_name, birth_date, identity_number, identity_type, gender]
-    responses:
-      201:
-        description: Usuario creado exitosamente
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                user_id:
-                  type: integer
-      400:
-        description: Error en los datos enviados
-    """
     try:
         data = request.json_body
         db = SessionLocal()
         
+        # Validate user doesn't exist
         user_exists = db.query(User).filter(
             User.identity_number == data['identity_number']
         ).first()
@@ -95,48 +47,6 @@ def create_user(request):
 
 @view_config(route_name='get_user', renderer='json')
 def get_user(request):
-    """
-    Obtener usuario actual
-    ---
-    tags:
-      - Usuarios
-    summary: Obtener usuario
-    description: Obtiene los datos del usuario autenticado
-    parameters:
-      - in: header
-        name: Authorization
-        schema:
-          type: string
-        required: true
-        description: "Bearer token"
-    responses:
-      200:
-        description: Datos del usuario
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                id:
-                  type: integer
-                first_name:
-                  type: string
-                last_name:
-                  type: string
-                birth_date:
-                  type: string
-                  format: date
-                identity_number:
-                  type: string
-                identity_type:
-                  type: string
-                gender:
-                  type: string
-      401:
-        description: Token requerido o inválido
-      404:
-        description: Usuario no encontrado
-    """
     try:
         token = extract_token(request)
         if not token:
@@ -166,35 +76,6 @@ def get_user(request):
 
 @view_config(route_name='list_users', renderer='json')
 def list_users(request):
-    """
-    Listar todos los usuarios
-    ---
-    tags:
-      - Usuarios
-    summary: Listar usuarios
-    description: Obtiene la lista de todos los usuarios
-    parameters:
-      - in: header
-        name: Authorization
-        schema:
-          type: string
-        required: true
-        description: "Bearer token"
-    responses:
-      200:
-        description: Lista de usuarios
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                users:
-                  type: array
-                  items:
-                    type: object
-      401:
-        description: Token requerido o inválido
-    """
     try:
         token = extract_token(request)
         if not token:
@@ -225,45 +106,6 @@ def list_users(request):
 
 @view_config(route_name='update_user', renderer='json')
 def update_user(request):
-    """
-    Actualizar usuario
-    ---
-    tags:
-      - Usuarios
-    summary: Actualizar usuario
-    description: Actualiza los datos del usuario autenticado
-    parameters:
-      - in: header
-        name: Authorization
-        schema:
-          type: string
-        required: true
-        description: "Bearer token"
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              first_name:
-                type: string
-              last_name:
-                type: string
-              birth_date:
-                type: string
-                format: date
-              gender:
-                type: string
-                enum: [MALE, FEMALE, OTHER]
-    responses:
-      200:
-        description: Usuario actualizado exitosamente
-      401:
-        description: Token requerido o inválido
-      404:
-        description: Usuario no encontrado
-    """
     try:
         token = extract_token(request)
         if not token:
@@ -296,28 +138,6 @@ def update_user(request):
 
 @view_config(route_name='delete_user', renderer='json')
 def delete_user(request):
-    """
-    Eliminar usuario
-    ---
-    tags:
-      - Usuarios
-    summary: Eliminar usuario
-    description: Elimina el usuario autenticado
-    parameters:
-      - in: header
-        name: Authorization
-        schema:
-          type: string
-        required: true
-        description: "Bearer token"
-    responses:
-      200:
-        description: Usuario eliminado exitosamente
-      401:
-        description: Token requerido o inválido
-      404:
-        description: Usuario no encontrado
-    """
     try:
         token = extract_token(request)
         if not token:

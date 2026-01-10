@@ -1,0 +1,81 @@
+## app/models/organization.py
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text
+from sqlalchemy.orm import relationship
+from app.database import Base
+from datetime import datetime
+
+# Many-to-many relationship: Users in Organizations
+user_organizations = Table(
+    'user_organizations',
+    Base.metadata,
+    Column('user_id', Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    Column('organization_id', Integer, ForeignKey('organizations.id', ondelete='CASCADE'), primary_key=True)
+)
+
+# Many-to-many relationship: Organization Roles for employees
+org_employee_roles = Table(
+    'org_employee_roles',
+    Base.metadata,
+    Column('employee_id', Integer, ForeignKey('organization_employees.id', ondelete='CASCADE'), primary_key=True),
+    Column('org_role_id', Integer, ForeignKey('organization_roles.id', ondelete='CASCADE'), primary_key=True)
+)
+
+class OrganizationRole(Base):
+    __tablename__ = "organization_roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    org_id = Column(Integer, ForeignKey('organizations.id', ondelete='CASCADE'), nullable=False)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    organization = relationship("Organization", back_populates="roles")
+    employees = relationship("OrganizationEmployee", secondary=org_employee_roles, back_populates="roles")
+
+    def __repr__(self):
+        return f"<OrganizationRole {self.name}>"
+
+class OrganizationEmployee(Base):
+    __tablename__ = "organization_employees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    org_id = Column(Integer, ForeignKey('organizations.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    organization = relationship("Organization", back_populates="employees")
+    user = relationship("User", back_populates="org_employees")
+    roles = relationship("OrganizationRole", secondary=org_employee_roles, back_populates="employees")
+
+    def __repr__(self):
+        return f"<OrganizationEmployee user_id={self.user_id} org_id={self.org_id}>"
+
+class Organization(Base):
+    __tablename__ = "organizations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    email = Column(String(120), unique=True, nullable=False, index=True)
+    legal_name = Column(String(255), nullable=False)
+    org_type = Column(String(100), nullable=False)
+    description = Column(Text)
+    owner_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    photo_url = Column(String(500))
+    primary_color = Column(String(7), default='#000000')
+    secondary_color = Column(String(7), default='#FFFFFF')
+    tertiary_color = Column(String(7), default='#F0F0F0')
+    employee_count = Column(Integer, default=0)
+    address = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    owner = relationship("User", foreign_keys=[owner_id], back_populates="owned_organizations")
+    members = relationship("User", secondary=user_organizations, back_populates="organizations")
+    employees = relationship("OrganizationEmployee", back_populates="organization", cascade="all, delete-orphan")
+    roles = relationship("OrganizationRole", back_populates="organization", cascade="all, delete-orphan")
+    products = relationship("Product", back_populates="organization", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Organization {self.name}>"
