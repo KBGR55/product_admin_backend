@@ -22,6 +22,13 @@ def main(global_config, **settings):
     config.add_route('login', '/api/accounts/login', request_method='POST')
     config.add_route('change_password', '/api/accounts/change-password', request_method='PUT')
     config.add_route('logout', '/api/accounts/logout', request_method='POST')
+   
+    # Product routes
+    config.add_route('create_product', '/api/organizations/{org_id}/products', request_method='POST')
+    config.add_route('get_product', '/api/organizations/{org_id}/products/{product_id}', request_method='GET')
+    config.add_route('list_products', '/api/organizations/{org_id}/products', request_method='GET')
+    config.add_route('update_product', '/api/organizations/{org_id}/products/{product_id}', request_method='PUT')
+    config.add_route('delete_product', '/api/organizations/{org_id}/products/{product_id}', request_method='DELETE')
     
     # Scan to register views
     config.scan()
