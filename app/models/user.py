@@ -57,7 +57,12 @@ class User(Base):
     # Relationships
     account = relationship("Account", back_populates="user", uselist=False)
     roles = relationship("Role", secondary=user_roles, back_populates="users")
-    organizations = relationship("Organization", secondary="user_organizations", back_populates="members", foreign_keys="user_organizations.c.user_id")
+    organizations = relationship(
+        "Organization",
+        secondary="user_organizations",
+        back_populates="members",
+        foreign_keys="[user_organizations.c.user_id, user_organizations.c.organization_id]"
+    )
     owned_organizations = relationship("Organization", foreign_keys="Organization.owner_id", back_populates="owner")
     org_employees = relationship("OrganizationEmployee", back_populates="user")
 

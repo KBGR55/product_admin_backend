@@ -1,14 +1,36 @@
 from pyramid.config import Configurator
+from pyramid.response import Response
 from app.database import engine, Base
-from app.models.user import User
+from app.models.user import User, Role
 from app.models.account import Account
-from pyramid.static import static_view
+from app.models.organization import Organization, OrganizationRole, OrganizationEmployee
+from app.models.product import Product
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
 def main(global_config, **settings):
     config = Configurator(settings=settings)
+    
+    # CORS Configuration
+    def add_cors_headers(event):
+        response = event.response
+        response.headers.update({
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Max-Age': '3600',
+        })
+    
+    config.add_subscriber(add_cors_headers, 'pyramid.events.NewResponse')
+    
+    # Handle preflight requests
+    config.add_route('cors_options', '/{path_info:.*}', request_method='OPTIONS')
+    
+    def cors_options_handler(request):
+        return Response(status=200)
+    
+    config.add_view(cors_options_handler, route_name='cors_options')
     
     # User routes
     config.add_route('create_user', '/api/users', request_method='POST')
