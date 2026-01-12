@@ -5,6 +5,7 @@ from app.database import SessionLocal
 from app.models.user import User
 from app.models.organization import Organization, OrganizationRole, OrganizationEmployee
 from app.middleware.jwt_middleware import extract_token, verify_token
+from sqlalchemy.orm import joinedload
 
 @view_config(route_name='create_org', renderer='json')
 def create_org(request):
@@ -296,19 +297,24 @@ def list_employees(request):
         token = extract_token(request)
         if not token:
             return Response(json.dumps({'error': 'Token requerido'}), status=401)
-        
+
         verify_token(token)
-        
+
         org_id = request.matchdict.get('org_id')
         db = SessionLocal()
-        
-        employees = db.query(OrganizationEmployee).filter(
-            OrganizationEmployee.org_id == org_id
-        ).all()
-        
-        db.close()
-        
-        return {
+
+        employees = (
+            db.query(OrganizationEmployee)
+            .options(
+                joinedload(OrganizationEmployee.user)
+                    .joinedload(User.account),
+                joinedload(OrganizationEmployee.roles)
+            )
+            .filter(OrganizationEmployee.org_id == org_id)
+            .all()
+        )
+
+        result = {
             'employees': [
                 {
                     'id': emp.id,
@@ -322,6 +328,10 @@ def list_employees(request):
                 for emp in employees
             ]
         }
+
+        db.close()
+        return result
+
     except Exception as e:
         return Response(json.dumps({'error': str(e)}), status=400)
 
