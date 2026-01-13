@@ -38,6 +38,7 @@ class OrganizationEmployee(Base):
 
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     organization = relationship("Organization", back_populates="employees")
@@ -57,15 +58,16 @@ class Organization(Base):
     org_type = Column(String(100), nullable=False)
     description = Column(Text)
     owner_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
-    photo_url = Column(String(500))
     primary_color = Column(String(7), default='#000000')
     secondary_color = Column(String(7), default='#FFFFFF')
     tertiary_color = Column(String(7), default='#F0F0F0')
     employee_count = Column(Integer, default=0)
     address = Column(Text)
+    is_active = Column(Boolean, default=True, nullable=False)
     extra_data = Column(JSONB, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+   
     # Relationships
     owner = relationship("User", foreign_keys=[owner_id], back_populates="owned_organizations")
     employees = relationship("OrganizationEmployee", back_populates="organization", cascade="all, delete-orphan")

@@ -11,7 +11,7 @@ def create_product(request):
     try:
         token = extract_token(request)
         if not token:
-            return Response(json.dumps({'error': 'Token requerido'}), status=401)
+            return Response(json_body({'error': 'Token requerido'}), status=401)
         
         verify_token(token)
         
@@ -23,7 +23,7 @@ def create_product(request):
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
             db.close()
-            return Response(json.dumps({'error': 'Organización no encontrada'}), status=404)
+            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
         
         product_exists = db.query(Product).filter(
             Product.sku == data['sku'],
@@ -32,7 +32,7 @@ def create_product(request):
         
         if product_exists:
             db.close()
-            return Response(json.dumps({'error': 'El SKU ya existe en esta organización'}), status=400)
+            return Response(json_body({'error': 'El SKU ya existe en esta organización'}), status=400)
         
         new_product = Product(
             org_id=org_id,
@@ -58,14 +58,14 @@ def create_product(request):
             'name': new_product.name
         }
     except Exception as e:
-        return Response(json.dumps({'error': str(e)}), status=400)
+        return Response(json_body({'error': str(e)}), status=400)
 
 @view_config(route_name='get_product', renderer='json')
 def get_product(request):
     try:
         token = extract_token(request)
         if not token:
-            return Response(json.dumps({'error': 'Token requerido'}), status=401)
+            return Response(json_body({'error': 'Token requerido'}), status=401)
         
         verify_token(token)
         
@@ -82,7 +82,7 @@ def get_product(request):
         db.close()
         
         if not product:
-            return Response(json.dumps({'error': 'Producto no encontrado'}), status=404)
+            return Response(json_body({'error': 'Producto no encontrado'}), status=404)
         
         return {
             'id': product.id,
@@ -99,14 +99,14 @@ def get_product(request):
             'updated_at': str(product.updated_at)
         }
     except Exception as e:
-        return Response(json.dumps({'error': str(e)}), status=400)
+        return Response(json_body({'error': str(e)}), status=400)
 
 @view_config(route_name='list_products', renderer='json')
 def list_products(request):
     try:
         token = extract_token(request)
         if not token:
-            return Response(json.dumps({'error': 'Token requerido'}), status=401)
+            return Response(json_body({'error': 'Token requerido'}), status=401)
         
         verify_token(token)
         
@@ -117,7 +117,7 @@ def list_products(request):
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
             db.close()
-            return Response(json.dumps({'error': 'Organización no encontrada'}), status=404)
+            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
         
         products = db.query(Product).filter(Product.org_id == org_id).all()
         db.close()
@@ -141,14 +141,14 @@ def list_products(request):
             ]
         }
     except Exception as e:
-        return Response(json.dumps({'error': str(e)}), status=400)
+        return Response(json_body({'error': str(e)}), status=400)
 
 @view_config(route_name='update_product', renderer='json')
 def update_product(request):
     try:
         token = extract_token(request)
         if not token:
-            return Response(json.dumps({'error': 'Token requerido'}), status=401)
+            return Response(json_body({'error': 'Token requerido'}), status=401)
         
         verify_token(token)
         
@@ -165,7 +165,7 @@ def update_product(request):
         
         if not product:
             db.close()
-            return Response(json.dumps({'error': 'Producto no encontrado'}), status=404)
+            return Response(json_body({'error': 'Producto no encontrado'}), status=404)
         
         product.name = data.get('name', product.name)
         product.description = data.get('description', product.description)
@@ -183,14 +183,14 @@ def update_product(request):
         
         return {'message': 'Producto actualizado exitosamente'}
     except Exception as e:
-        return Response(json.dumps({'error': str(e)}), status=400)
+        return Response(json_body({'error': str(e)}), status=400)
 
 @view_config(route_name='delete_product', renderer='json')
 def delete_product(request):
     try:
         token = extract_token(request)
         if not token:
-            return Response(json.dumps({'error': 'Token requerido'}), status=401)
+            return Response(json_body({'error': 'Token requerido'}), status=401)
         
         verify_token(token)
         
@@ -206,7 +206,7 @@ def delete_product(request):
         
         if not product:
             db.close()
-            return Response(json.dumps({'error': 'Producto no encontrado'}), status=404)
+            return Response(json_body({'error': 'Producto no encontrado'}), status=404)
         
         db.delete(product)
         db.commit()
@@ -214,4 +214,4 @@ def delete_product(request):
         
         return {'message': 'Producto eliminado exitosamente'}
     except Exception as e:
-        return Response(json.dumps({'error': str(e)}), status=400)
+        return Response(json_body({'error': str(e)}), status=400)

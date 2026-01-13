@@ -1,5 +1,5 @@
 ## app/models/user.py
-from sqlalchemy import Column, Integer, String, Date, Enum
+from sqlalchemy import Column, Integer, String, Date, Enum, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime

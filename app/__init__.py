@@ -1,7 +1,7 @@
 from pyramid.config import Configurator
 from pyramid.response import Response
 from app.database import engine, Base
-from app.models.user import User, Role
+from app.models.user import User
 from app.models.account import Account
 from app.models.organization import Organization, OrganizationRole, OrganizationEmployee
 from app.models.product import Product
@@ -45,12 +45,6 @@ def main(global_config, **settings):
     config.add_route('change_password', '/api/accounts/change-password', request_method='PUT')
     config.add_route('logout', '/api/accounts/logout', request_method='POST')
        
-    # Role routes (System roles)
-    config.add_route('create_role', '/api/roles', request_method='POST')
-    config.add_route('list_roles', '/api/roles', request_method='GET')
-    config.add_route('assign_role', '/api/users/{user_id}/roles/{role_id}', request_method='POST')
-    config.add_route('remove_role', '/api/users/{user_id}/roles/{role_id}', request_method='DELETE')
-    
     # Organization routes
     config.add_route('create_org', '/api/organizations', request_method='POST')
     config.add_route('get_org', '/api/organizations/{org_id}', request_method='GET')
@@ -60,7 +54,7 @@ def main(global_config, **settings):
     
     # Organization Employee routes
     config.add_route('add_employee', '/api/organizations/{org_id}/employees', request_method='POST')
-    config.add_route('remove_employee', '/api/organizations/{org_id}/employees/{user_id}', request_method='DELETE')
+    config.add_route('remove_employee', '/api/organizations/{org_id}/employees/{employee_id}', request_method='DELETE')
     config.add_route('list_employees', '/api/organizations/{org_id}/employees', request_method='GET')
     
     # Organization Role routes
