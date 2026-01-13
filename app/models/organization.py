@@ -1,16 +1,9 @@
 ## app/models/organization.py
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
-
-# Many-to-many relationship: Users in Organizations
-user_organizations = Table(
-    'user_organizations',
-    Base.metadata,
-    Column('user_id', Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
-    Column('organization_id', Integer, ForeignKey('organizations.id', ondelete='CASCADE'), primary_key=True)
-)
+from sqlalchemy.dialects.postgresql import JSONB
 
 # Many-to-many relationship: Organization Roles for employees
 org_employee_roles = Table(
@@ -39,9 +32,11 @@ class OrganizationRole(Base):
 class OrganizationEmployee(Base):
     __tablename__ = "organization_employees"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     org_id = Column(Integer, ForeignKey('organizations.id', ondelete='CASCADE'), nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -68,11 +63,11 @@ class Organization(Base):
     tertiary_color = Column(String(7), default='#F0F0F0')
     employee_count = Column(Integer, default=0)
     address = Column(Text)
+    extra_data = Column(JSONB, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
     owner = relationship("User", foreign_keys=[owner_id], back_populates="owned_organizations")
-    members = relationship("User", secondary=user_organizations, back_populates="organizations")
     employees = relationship("OrganizationEmployee", back_populates="organization", cascade="all, delete-orphan")
     roles = relationship("OrganizationRole", back_populates="organization", cascade="all, delete-orphan")
     products = relationship("Product", back_populates="organization", cascade="all, delete-orphan")
