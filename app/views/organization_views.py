@@ -49,7 +49,8 @@ def create_org(request):
             secondary_color=data.get('secondary_color', '#FFFFFF'),
             tertiary_color=data.get('tertiary_color', '#F0F0F0'),
             employee_count=1,
-            address=data.get('address')
+            address=data.get('address'),
+            extra_data=data.get('extra_data', {})
         )
 
         db.add(new_org)
@@ -121,6 +122,7 @@ def get_org(request):
             'employee_count': org.employee_count,
             'address': org.address,
             'is_active': org.is_active,
+            'extra_data': org.extra_data,
             'created_at': org.created_at.isoformat()
         }
 
@@ -166,6 +168,7 @@ def list_org(request):
                     'tertiary_color': org.tertiary_color,
                     'employee_count': org.employee_count,
                     'is_active': org.is_active,
+                    'extra_data': org.extra_data,
                     'created_at': org.created_at.isoformat()
                 }
                 for org in organizations
@@ -188,36 +191,57 @@ def update_org(request):
     user_id, error = get_current_user_id(request)
     if error:
         return error
-    
+
+    db = SessionLocal()
     try:
         org_id = request.matchdict.get('org_id')
         data = request.json_body
-        
-        db = SessionLocal()
-        
+
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
-            db.close()
-            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
-        
+            return Response(
+                json_body({'error': 'Organización no encontrada'}),
+                status=404,
+                content_type='application/json'
+            )
+
         if org.owner_id != user_id:
-            db.close()
-            return Response(json_body({'error': 'No tienes permiso para actualizar esta organización'}), status=403)
-        
-        # Actualizar solo los campos proporcionados
-        updatable_fields = ['name', 'legal_name', 'org_type', 'description',
-                          'primary_color', 'secondary_color', 'tertiary_color', 'address', 'is_active']
-        
+            return Response(
+                json_body({'error': 'No tienes permiso para actualizar esta organización'}),
+                status=403,
+                content_type='application/json'
+            )
+
+        updatable_fields = [
+            'name',
+            'legal_name',
+            'org_type',
+            'description',
+            'primary_color',
+            'secondary_color',
+            'tertiary_color',
+            'address',
+            'is_active',
+            'extra_data'  
+        ]
+
         for field in updatable_fields:
             if field in data:
                 setattr(org, field, data[field])
-        
+
         db.commit()
-        db.close()
-        
         return {'message': 'Organización actualizada exitosamente'}
+
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=500)
+        db.rollback()
+        return Response(
+            json_body({'error': str(e)}),
+            status=500,
+            content_type='application/json'
+        )
+
+    finally:
+        db.close()
 
 @view_config(route_name='delete_org', renderer='json')
 def delete_org(request):
