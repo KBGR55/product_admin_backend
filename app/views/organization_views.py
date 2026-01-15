@@ -370,95 +370,76 @@ def list_employees(request):
     if error:
         return error
 
+    org_id = int(request.matchdict['org_id'])
     db = SessionLocal()
+
     try:
-        org_id = request.matchdict.get('org_id')
+        org = db.query(Organization).filter(Organization.id == org_id).first()
+        if not org:
+            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
 
         employees = (
             db.query(OrganizationEmployee)
             .options(
-                joinedload(OrganizationEmployee.user)
-                    .joinedload(User.account),
+                joinedload(OrganizationEmployee.user),
                 joinedload(OrganizationEmployee.roles)
             )
-            .filter(OrganizationEmployee.org_id == org_id)
+            .filter(
+                OrganizationEmployee.org_id == org_id,
+                OrganizationEmployee.is_active == True
+            )
             .all()
         )
 
         return {
-            'employees': [
+            "employees": [
                 {
-                    'id': emp.id,
-                    'user_id': emp.user_id,
-                    'first_name': emp.user.first_name,
-                    'last_name': emp.user.last_name,
-                    'email': emp.user.account.email if emp.user.account else None,
-                    'roles': [{'id': role.id, 'name': role.name} for role in emp.roles],
-                    'is_active': emp.is_active,
-                    'created_at': emp.created_at.isoformat()
+                    "employee_id": e.id,
+                    "user_id": e.user.id if e.user else None,
+                    "first_name": e.user.first_name if e.user else None,
+                    "last_name": e.user.last_name if e.user else None,
+                    "roles": [r.name for r in e.roles]
                 }
-                for emp in employees
+                for e in employees
             ]
         }
 
-    except Exception as e:
-        db.rollback() 
-        return Response(
-            json.body({'error': str(e)}),
-            status=500,
-            content_type='application/json'
-        )
     finally:
-        db.close() 
+        db.close()
 
-@view_config(route_name='create_org_role', renderer='json')
+@view_config(route_name='create_org_role', request_method='POST', renderer='json')
 def create_org_role(request):
     user_id, error = get_current_user_id(request)
     if error:
         return error
-    
+
+    db = SessionLocal()
     try:
-        org_id = request.matchdict.get('org_id')
+        org_id = request.matchdict['org_id']
         data = request.json_body
-        
-        db = SessionLocal()
-        
+
         org = db.query(Organization).filter(Organization.id == org_id).first()
-        if not org:
-            db.close()
-            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
-        
-        if org.owner_id != user_id:
-            db.close()
-            return Response(json_body({'error': 'No tienes permiso para crear roles'}), status=403)
-        
-        if db.query(OrganizationRole).filter(
-            OrganizationRole.org_id == org_id,
-            OrganizationRole.name == data.get('name')
-        ).first():
-            db.close()
-            return Response(json_body({'error': 'El rol ya existe en esta organización'}), status=400)
-        
-        new_role = OrganizationRole(
+        if not org or org.owner_id != user_id:
+            return {'error': 'No tienes permiso para crear roles'}
+
+        role = OrganizationRole(
             org_id=org_id,
-            name=data.get('name'),
-            description=data.get('description', '')
+            name=data['name'],
+            description=data.get('description')
         )
-        
-        db.add(new_role)
+
+        db.add(role)
         db.commit()
-        db.refresh(new_role)
-        db.close()
-        
+        db.refresh(role)
+
         return {
-            'message': 'Rol de organización creado exitosamente',
-            'role_id': new_role.id,
-            'name': new_role.name
+            'id': role.id,
+            'name': role.name,
+            'description': role.description
         }
-    except KeyError as e:
-        return Response(json_body({'error': f'Campo requerido faltante: {str(e)}'}), status=400)
-    except Exception as e:
-        return Response(json_body({'error': str(e)}), status=500)
+    finally:
+        db.close()
+
 
 @view_config(route_name='list_org_roles', renderer='json')
 def list_org_roles(request):
