@@ -44,6 +44,8 @@ def create_org(request):
             legal_name=data['legal_name'],
             org_type=data['org_type'],
             description=data.get('description'),
+            code_telephone=data.get('code_telephone'),
+            telephone=data.get('telephone'),
             owner_id=user_id,
             primary_color=data.get('primary_color', '#000000'),
             secondary_color=data.get('secondary_color', '#FFFFFF'),
@@ -115,6 +117,8 @@ def get_org(request):
             'legal_name': org.legal_name,
             'org_type': org.org_type,
             'description': org.description,
+            'code_telephone': org.code_telephone,
+            'telephone': org.telephone,
             'owner_id': org.owner_id,
             'primary_color': org.primary_color,
             'secondary_color': org.secondary_color,
@@ -163,6 +167,8 @@ def list_org(request):
                     'legal_name': org.legal_name,
                     'org_type': org.org_type,
                     'description': org.description,
+                    'code_telephone': org.code_telephone,
+                    'telephone': org.telephone,
                     'primary_color': org.primary_color,
                     'secondary_color': org.secondary_color,
                     'tertiary_color': org.tertiary_color,
@@ -217,6 +223,8 @@ def update_org(request):
             'legal_name',
             'org_type',
             'description',
+            'code_telephone',
+            'telephone',
             'primary_color',
             'secondary_color',
             'tertiary_color',
@@ -563,3 +571,49 @@ def remove_org_role(request):
         return {'message': 'Rol removido exitosamente del empleado'}
     except Exception as e:
         return Response(json_body({'error': str(e)}), status=500)
+
+@view_config(route_name='list_public_organizations', renderer='json', request_method='GET')
+def list_public_organizations(request):
+    """
+    Lista todas las organizaciones activas sin requerir autenticación.
+    Retorna solo información pública de las organizaciones.
+    """
+    db = SessionLocal()
+    try:
+        # Obtener solo organizaciones activas
+        organizations = (
+            db.query(Organization)
+            .filter(Organization.is_active == True)
+            .order_by(Organization.created_at.desc())
+            .all()
+        )
+
+        return {
+            'organizations': [
+                {
+                    'id': org.id,
+                    'name': org.name,
+                    'org_type': org.org_type,
+                    'description': org.description,
+                    'primary_color': org.primary_color,
+                    'secondary_color': org.secondary_color,
+                    'tertiary_color': org.tertiary_color,
+                    'employee_count': org.employee_count,
+                    'address': org.address,
+                    'created_at': org.created_at.isoformat()
+                }
+                for org in organizations
+            ],
+            'count': len(organizations)
+        }
+
+    except Exception as e:
+        db.rollback()
+        return Response(
+            json_body({'error': str(e)}),
+            status=500,
+            content_type='application/json'
+        )
+
+    finally:
+        db.close()

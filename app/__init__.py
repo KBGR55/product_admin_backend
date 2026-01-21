@@ -31,7 +31,9 @@ def main(global_config, **settings):
         return Response(status=200)
     
     config.add_view(cors_options_handler, route_name='cors_options')
-    
+    # RUTAS PÚBLICAS (sin autenticación)
+    config.add_route('list_public_organizations', '/api/public/organizations')
+  
     # User routes
     config.add_route('create_user', '/api/users', request_method='POST')
     config.add_route('get_user', '/api/users/{id}', request_method='GET')

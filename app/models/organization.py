@@ -57,6 +57,8 @@ class Organization(Base):
     legal_name = Column(String(255), nullable=False)
     org_type = Column(String(100), nullable=False)
     description = Column(Text)
+    code_telephone = Column(String(10))
+    telephone = Column(String(20))
     owner_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     primary_color = Column(String(7), default='#000000')
     secondary_color = Column(String(7), default='#FFFFFF')
