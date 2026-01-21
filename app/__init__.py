@@ -31,47 +31,50 @@ def main(global_config, **settings):
         return Response(status=200)
     
     config.add_view(cors_options_handler, route_name='cors_options')
+    
     # ==================== RUTAS PÚBLICAS (sin autenticación) ====================
     config.add_route('list_public_organizations', '/api/public/organizations', request_method='GET')
-    # User routes
+    config.add_route('list_products_public', '/api/public/organizations/{org_id}/products', request_method='GET')
+
+    # ==================== User routes ====================
     config.add_route('create_user', '/api/users', request_method='POST')
     config.add_route('get_user', '/api/users/{id}', request_method='GET')
     config.add_route('list_users', '/api/users', request_method='GET')
     config.add_route('update_user', '/api/users/{id}', request_method='PUT')
     config.add_route('delete_user', '/api/users/{id}', request_method='DELETE')
     
-    # Account routes
+    # ==================== Account routes ====================
     config.add_route('register_account', '/api/accounts/register', request_method='POST')
     config.add_route('login', '/api/accounts/login', request_method='POST')
     config.add_route('change_password', '/api/accounts/change-password', request_method='PUT')
     config.add_route('logout', '/api/accounts/logout', request_method='POST')
        
-    # Organization routes
+    # ==================== Organization routes ====================
     config.add_route('create_org', '/api/organizations', request_method='POST')
     config.add_route('get_org', '/api/organizations/{org_id}', request_method='GET')
     config.add_route('list_org', '/api/organizations', request_method='GET')
     config.add_route('update_org', '/api/organizations/{org_id}', request_method='PUT')
     config.add_route('delete_org', '/api/organizations/{org_id}', request_method='DELETE')
     
-    # Organization Employee routes
+    # ==================== Organization Employee routes ====================
     config.add_route('add_employee', '/api/organizations/{org_id}/employees', request_method='POST')
     config.add_route('remove_employee', '/api/organizations/{org_id}/employees/{employee_id}', request_method='DELETE')
     config.add_route('list_employees', '/api/organizations/{org_id}/employees', request_method='GET')
     
-    # Organization Role routes
+    # ==================== Organization Role routes ====================
     config.add_route('create_org_role', '/api/organizations/{org_id}/roles', request_method='POST')
     config.add_route('list_org_roles', '/api/organizations/{org_id}/roles', request_method='GET')
     config.add_route('assign_org_role', '/api/organizations/{org_id}/employees/{employee_id}/roles/{role_id}', request_method='POST')
     config.add_route('remove_org_role', '/api/organizations/{org_id}/employees/{employee_id}/roles/{role_id}', request_method='DELETE')
     
-    # Product routes
+    # ==================== Product routes ====================
     config.add_route('create_product', '/api/organizations/{org_id}/products', request_method='POST')
     config.add_route('get_product', '/api/organizations/{org_id}/products/{product_id}', request_method='GET')
     config.add_route('list_products', '/api/organizations/{org_id}/products', request_method='GET')
     config.add_route('update_product', '/api/organizations/{org_id}/products/{product_id}', request_method='PUT')
     config.add_route('delete_product', '/api/organizations/{org_id}/products/{product_id}', request_method='DELETE')
     
-    # Scan to register views
-    config.scan()
+    # Scan all view modules to register views
+    config.scan('app.views')
     
     return config.make_wsgi_app()

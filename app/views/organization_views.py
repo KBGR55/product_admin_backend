@@ -8,17 +8,73 @@ from app.models.organization import Organization, OrganizationRole, Organization
 from app.middleware.jwt_middleware import extract_token, verify_token
 from sqlalchemy.orm import joinedload
 
+# ==================== FUNCIONES AUXILIARES ====================
+
+def json_response(data, status=200):
+    """Crea una respuesta JSON correctamente formateada"""
+    return Response(
+        json.dumps(data),
+        status=status,
+        content_type='application/json; charset=utf-8'
+    )
+
 def get_current_user_id(request):
     """Extrae y valida el token, retorna el user_id"""
     token = extract_token(request)
     if not token:
-        return None, Response(json_body({'error': 'Token requerido'}), status=401)
+        return None, json_response({'error': 'Token requerido'}, status=401)
     
     try:
         payload = verify_token(token)
         return payload.get('user_id'), None
     except Exception as e:
-        return None, Response(json_body({'error': str(e)}), status=400)
+        return None, json_response({'error': str(e)}, status=400)
+
+# ==================== VISTAS DE ORGANIZACIÓN ====================
+@view_config(route_name='list_public_organizations', renderer='json', request_method='GET')
+def list_public_organizations(request):
+    """
+    Lista todas las organizaciones activas sin requerir autenticación.
+    Retorna solo información pública de las organizaciones.
+    """
+    db = SessionLocal()
+    try:
+        organizations = (
+            db.query(Organization)
+            .filter(Organization.is_active == True)
+            .order_by(Organization.created_at.desc())
+            .all()
+        )
+
+        return {
+            'organizations': [
+                {
+                    'id': org.id,
+                    'name': org.name,
+                    'org_type': org.org_type,
+                    'description': org.description,
+                    'primary_color': org.primary_color,
+                    'secondary_color': org.secondary_color,
+                    'tertiary_color': org.tertiary_color,
+                    'employee_count': org.employee_count,
+                    'address': org.address,
+                    'is_active': org.is_active,
+                    'extra_data': org.extra_data,
+                    'code_telephone': org.code_telephone,
+                    'telephone': org.telephone,
+                    'created_at': org.created_at.isoformat()
+                }
+                for org in organizations
+            ],
+            'count': len(organizations)
+        }
+
+    except Exception as e:
+        db.rollback()
+        return json_response({'error': str(e)}, status=500)
+
+    finally:
+        db.close()
 
 @view_config(route_name='create_org', renderer='json')
 def create_org(request):
@@ -92,6 +148,7 @@ def create_org(request):
     finally:
         db.close()  
 
+# ==================== RUTAS PRIVADAS ====================
 @view_config(route_name='get_org', renderer='json')
 def get_org(request):
     user_id, error = get_current_user_id(request)
@@ -571,49 +628,3 @@ def remove_org_role(request):
         return {'message': 'Rol removido exitosamente del empleado'}
     except Exception as e:
         return Response(json_body({'error': str(e)}), status=500)
-
-@view_config(route_name='list_public_organizations', renderer='json', request_method='GET')
-def list_public_organizations(request):
-    """
-    Lista todas las organizaciones activas sin requerir autenticación.
-    Retorna solo información pública de las organizaciones.
-    """
-    db = SessionLocal()
-    try:
-        # Obtener solo organizaciones activas
-        organizations = (
-            db.query(Organization)
-            .filter(Organization.is_active == True)
-            .order_by(Organization.created_at.desc())
-            .all()
-        )
-
-        return {
-            'organizations': [
-                {
-                    'id': org.id,
-                    'name': org.name,
-                    'org_type': org.org_type,
-                    'description': org.description,
-                    'primary_color': org.primary_color,
-                    'secondary_color': org.secondary_color,
-                    'tertiary_color': org.tertiary_color,
-                    'employee_count': org.employee_count,
-                    'address': org.address,
-                    'created_at': org.created_at.isoformat()
-                }
-                for org in organizations
-            ],
-            'count': len(organizations)
-        }
-
-    except Exception as e:
-        db.rollback()
-        return Response(
-            json_body({'error': str(e)}),
-            status=500,
-            content_type='application/json'
-        )
-
-    finally:
-        db.close()

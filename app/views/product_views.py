@@ -1,17 +1,87 @@
 from pyramid.view import view_config
 from pyramid.response import Response
 import json
+from decimal import Decimal
 from app.database import SessionLocal
-from app.models.organization import Organization
 from app.models.product import Product
+from app.models.organization import Organization
 from app.middleware.jwt_middleware import extract_token, verify_token
 
-@view_config(route_name='create_product', renderer='json')
+# ==================== FUNCIONES AUXILIARES ====================
+
+def json_response(data, status=200):
+    """Crea una respuesta JSON correctamente formateada"""
+    return Response(
+        json.dumps(data),
+        status=status,
+        content_type='application/json; charset=utf-8'
+    )
+
+def convert_decimal_to_float(obj):
+    """Convierte Decimal a float para JSON serialization"""
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+def format_product(product):
+    """Formatea un producto para retornarlo en JSON"""
+    return {
+        'id': product.id,
+        'org_id': product.org_id,
+        'name': product.name,
+        'description': product.description,
+        'sku': product.sku,
+        'price': float(product.price),  # Convertir Decimal a float
+        'cost': float(product.cost) if product.cost else None,
+        'stock': product.stock,
+        'photo_url': product.photo_url,
+        'is_active': product.is_active,
+        'attributes': product.attributes or {},
+        'created_at': product.created_at.isoformat(),
+        'updated_at': product.updated_at.isoformat()
+    }
+
+# ==================== RUTAS ====================
+@view_config(route_name='list_products_public', renderer='json', request_method='GET')
+def list_products_public(request):
+    """Lista todos los productos de una organización (PÚBLICO - sin autenticación)"""
+    try:
+        org_id = request.matchdict.get('org_id')
+        
+        db = SessionLocal()
+        
+        # Validar que la organización existe y está activa
+        org = db.query(Organization).filter(
+            Organization.id == org_id,
+            Organization.is_active == True
+        ).first()
+        
+        if not org:
+            db.close()
+            return json_response({'error': 'Organización no encontrada'}, status=404)
+        
+        # Obtener solo productos activos
+        products = db.query(Product).filter(
+            Product.org_id == org_id,
+            Product.is_active == True
+        ).all()
+        db.close()
+        
+        return {
+            'products': [format_product(p) for p in products],
+            'count': len(products)
+        }
+    
+    except Exception as e:
+        return json_response({'error': str(e)}, status=500)
+
+@view_config(route_name='create_product', renderer='json', request_method='POST')
 def create_product(request):
+    """Crea un nuevo producto"""
     try:
         token = extract_token(request)
         if not token:
-            return Response(json_body({'error': 'Token requerido'}), status=401)
+            return json_response({'error': 'Token requerido'}, status=401)
         
         verify_token(token)
         
@@ -20,26 +90,19 @@ def create_product(request):
         
         db = SessionLocal()
         
+        # Validar que la organización existe
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
             db.close()
-            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
+            return json_response({'error': 'Organización no encontrada'}, status=404)
         
-        product_exists = db.query(Product).filter(
-            Product.sku == data['sku'],
-            Product.org_id == org_id
-        ).first()
-        
-        if product_exists:
-            db.close()
-            return Response(json_body({'error': 'El SKU ya existe en esta organización'}), status=400)
-        
+        # Crear producto sin SKU (se generará automáticamente)
         new_product = Product(
             org_id=org_id,
-            name=data['name'],
+            name=data.get('name'),
             description=data.get('description'),
-            sku=data['sku'],
-            price=data['price'],
+            sku=data.get('sku'),
+            price=data.get('price'),
             cost=data.get('cost'),
             stock=data.get('stock', 0),
             photo_url=data.get('photo_url'),
@@ -55,17 +118,22 @@ def create_product(request):
         return {
             'message': 'Producto creado exitosamente',
             'product_id': new_product.id,
-            'name': new_product.name
+            'name': new_product.name,
+            'sku': new_product.sku
         }
+    
+    except KeyError as e:
+        return json_response({'error': f'Campo requerido faltante: {str(e)}'}, status=400)
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=400)
+        return json_response({'error': str(e)}, status=500)
 
-@view_config(route_name='get_product', renderer='json')
+@view_config(route_name='get_product', renderer='json', request_method='GET')
 def get_product(request):
+    """Obtiene un producto específico"""
     try:
         token = extract_token(request)
         if not token:
-            return Response(json_body({'error': 'Token requerido'}), status=401)
+            return json_response({'error': 'Token requerido'}, status=401)
         
         verify_token(token)
         
@@ -82,31 +150,20 @@ def get_product(request):
         db.close()
         
         if not product:
-            return Response(json_body({'error': 'Producto no encontrado'}), status=404)
+            return json_response({'error': 'Producto no encontrado'}, status=404)
         
-        return {
-            'id': product.id,
-            'name': product.name,
-            'description': product.description,
-            'sku': product.sku,
-            'price': product.price,
-            'cost': product.cost,
-            'stock': product.stock,
-            'photo_url': product.photo_url,
-            'is_active': product.is_active,
-            'attributes': product.attributes,
-            'created_at': str(product.created_at),
-            'updated_at': str(product.updated_at)
-        }
+        return format_product(product)
+    
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=400)
+        return json_response({'error': str(e)}, status=500)
 
-@view_config(route_name='list_products', renderer='json')
+@view_config(route_name='list_products', renderer='json', request_method='GET')
 def list_products(request):
+    """Lista todos los productos de una organización"""
     try:
         token = extract_token(request)
         if not token:
-            return Response(json_body({'error': 'Token requerido'}), status=401)
+            return json_response({'error': 'Token requerido'}, status=401)
         
         verify_token(token)
         
@@ -114,41 +171,30 @@ def list_products(request):
         
         db = SessionLocal()
         
+        # Validar que la organización existe
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
             db.close()
-            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
+            return json_response({'error': 'Organización no encontrada'}, status=404)
         
         products = db.query(Product).filter(Product.org_id == org_id).all()
         db.close()
         
         return {
-            'products': [
-                {
-                    'id': p.id,
-                    'name': p.name,
-                    'description': p.description,
-                    'sku': p.sku,
-                    'price': p.price,
-                    'cost': p.cost,
-                    'stock': p.stock,
-                    'photo_url': p.photo_url,
-                    'is_active': p.is_active,
-                    'attributes': p.attributes,
-                    'created_at': str(p.created_at)
-                }
-                for p in products
-            ]
+            'products': [format_product(p) for p in products],
+            'count': len(products)
         }
+    
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=400)
+        return json_response({'error': str(e)}, status=500)
 
-@view_config(route_name='update_product', renderer='json')
+@view_config(route_name='update_product', renderer='json', request_method='PUT')
 def update_product(request):
+    """Actualiza un producto"""
     try:
         token = extract_token(request)
         if not token:
-            return Response(json_body({'error': 'Token requerido'}), status=401)
+            return json_response({'error': 'Token requerido'}, status=401)
         
         verify_token(token)
         
@@ -165,32 +211,36 @@ def update_product(request):
         
         if not product:
             db.close()
-            return Response(json_body({'error': 'Producto no encontrado'}), status=404)
+            return json_response({'error': 'Producto no encontrado'}, status=404)
         
-        product.name = data.get('name', product.name)
-        product.description = data.get('description', product.description)
-        product.price = data.get('price', product.price)
-        product.cost = data.get('cost', product.cost)
-        product.stock = data.get('stock', product.stock)
-        product.photo_url = data.get('photo_url', product.photo_url)
-        product.is_active = data.get('is_active', product.is_active)
+        updatable_fields = [
+            'name', 'description', 'price', 'cost',
+            'stock', 'photo_url', 'is_active', 'attributes'
+        ]
         
-        if 'attributes' in data:
-            product.attributes = data['attributes']
+        for field in updatable_fields:
+            if field in data:
+                setattr(product, field, data[field])
         
         db.commit()
+        db.refresh(product)
         db.close()
         
-        return {'message': 'Producto actualizado exitosamente'}
+        return {
+            'message': 'Producto actualizado exitosamente',
+            'product': format_product(product)
+        }
+    
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=400)
+        return json_response({'error': str(e)}, status=500)
 
-@view_config(route_name='delete_product', renderer='json')
+@view_config(route_name='delete_product', renderer='json', request_method='DELETE')
 def delete_product(request):
+    """Elimina un producto"""
     try:
         token = extract_token(request)
         if not token:
-            return Response(json_body({'error': 'Token requerido'}), status=401)
+            return json_response({'error': 'Token requerido'}, status=401)
         
         verify_token(token)
         
@@ -206,12 +256,13 @@ def delete_product(request):
         
         if not product:
             db.close()
-            return Response(json_body({'error': 'Producto no encontrado'}), status=404)
+            return json_response({'error': 'Producto no encontrado'}, status=404)
         
         db.delete(product)
         db.commit()
         db.close()
         
         return {'message': 'Producto eliminado exitosamente'}
+    
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=400)
+        return json_response({'error': str(e)}, status=500)
