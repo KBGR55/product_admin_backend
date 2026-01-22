@@ -1,20 +1,8 @@
-## app/models/user.py
-from sqlalchemy import Column, Integer, String, Date, Enum, Boolean, DateTime
+# app/models/user.py
+from sqlalchemy import Column, Integer, String, Date, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
-import enum
-
-class IdentityType(enum.Enum):
-    RUC = "RUC"
-    DNI = "DNI"
-    PASSPORT = "PASSPORT"
-    FOREIGN_ID = "FOREIGN_ID"
-
-class Gender(enum.Enum):
-    MALE = "MALE"
-    FEMALE = "FEMALE"
-    OTHER = "OTHER"
 
 class User(Base):
     __tablename__ = "users"
@@ -23,14 +11,18 @@ class User(Base):
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     birth_date = Column(Date, nullable=False)
+
     identity_number = Column(String(50), unique=True, nullable=False)
-    identity_type = Column(Enum(IdentityType), nullable=False)
-    gender = Column(Enum(Gender), nullable=False)
+    identity_type_id = Column(Integer, ForeignKey("identity_types.id"), nullable=False)
+
+    gender_id = Column(Integer, ForeignKey("genders.id"), nullable=False)
 
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    
+    identity_type = relationship("IdentityType", back_populates="users")
+    gender = relationship("Gender")
+
     account = relationship("Account", back_populates="user", uselist=False)
     org_employees = relationship("OrganizationEmployee", back_populates="user")
     owned_organizations = relationship("Organization", back_populates="owner")
