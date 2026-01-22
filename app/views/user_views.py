@@ -3,7 +3,9 @@ from pyramid.view import view_config
 from pyramid.response import Response
 import json
 from app.database import SessionLocal
-from app.models.user import User, IdentityType, Gender
+from app.models.user import User
+from app.models.identity_type import IdentityType
+from app.models.gender import Gender
 from app.middleware.jwt_middleware import extract_token, verify_token
 from datetime import datetime
 
@@ -29,8 +31,8 @@ def format_user(user):
         'last_name': user.last_name,
         'birth_date': user.birth_date.isoformat(),
         'identity_number': user.identity_number,
-        'identity_type': user.identity_type.value,
-        'gender': user.gender.value,
+        'identity_type': user.identity_type.code,
+        'gender': user.gender.code,
         'is_active': user.is_active,
         'created_at': user.created_at.isoformat()
     }
@@ -59,14 +61,25 @@ def create_user(request):
                 status=400
             )
         
-        # Validar enum values
-        try:
-            identity_type = IdentityType[data['identity_type']]
-            gender = Gender[data['gender']]
-        except KeyError as e:
+        # Validar y obtener identity_type
+        identity_type = db.query(IdentityType).filter(
+            IdentityType.code == data['identity_type']
+        ).first()
+        if not identity_type:
             db.close()
             return Response(
-                json.dumps({'error': f'Valor inválido para enum: {str(e)}'}),
+                json.dumps({'error': f'Tipo de identidad inválido: {data["identity_type"]}'}),
+                status=400
+            )
+        
+        # Validar y obtener gender
+        gender = db.query(Gender).filter(
+            Gender.code == data['gender']
+        ).first()
+        if not gender:
+            db.close()
+            return Response(
+                json.dumps({'error': f'Género inválido: {data["gender"]}'}),
                 status=400
             )
         
@@ -85,8 +98,8 @@ def create_user(request):
             last_name=data['last_name'],
             birth_date=birth_date,
             identity_number=data['identity_number'],
-            identity_type=identity_type,
-            gender=gender,
+            identity_type_id=identity_type.id,
+            gender_id=gender.id,
             is_active=True
         )
         
@@ -171,16 +184,31 @@ def update_user(request):
                     status=400
                 )
         
-        # Actualizar gender con validación
-        if 'gender' in data:
-            try:
-                user.gender = Gender[data['gender']]
-            except KeyError:
+        # Actualizar identity_type con validación
+        if 'identity_type' in data:
+            identity_type = db.query(IdentityType).filter(
+                IdentityType.code == data['identity_type']
+            ).first()
+            if not identity_type:
                 db.close()
                 return Response(
-                    json.dumps({'error': f'Valor inválido para gender: {data["gender"]}'}),
+                    json.dumps({'error': f'Tipo de identidad inválido: {data["identity_type"]}'}),
                     status=400
                 )
+            user.identity_type_id = identity_type.id
+        
+        # Actualizar gender con validación
+        if 'gender' in data:
+            gender = db.query(Gender).filter(
+                Gender.code == data['gender']
+            ).first()
+            if not gender:
+                db.close()
+                return Response(
+                    json.dumps({'error': f'Género inválido: {data["gender"]}'}),
+                    status=400
+                )
+            user.gender_id = gender.id
         
         db.commit()
         db.close()

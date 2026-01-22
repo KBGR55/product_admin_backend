@@ -5,9 +5,12 @@ from app.models.user import User
 from app.models.account import Account
 from app.models.organization import Organization, OrganizationRole, OrganizationEmployee
 from app.models.product import Product
+from app.models.identity_type import IdentityType
+from app.models.gender import Gender
+
 
 # Create tables
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 def main(global_config, **settings):
     config = Configurator(settings=settings)
@@ -74,6 +77,21 @@ def main(global_config, **settings):
     config.add_route('update_product', '/api/organizations/{org_id}/products/{product_id}', request_method='PUT')
     config.add_route('delete_product', '/api/organizations/{org_id}/products/{product_id}', request_method='DELETE')
     
+    # IDENTITY TYPES ROUTES
+    config.add_route('list_identity_types', '/api/identity-types', request_method='GET')
+    config.add_route('create_identity_type', '/api/identity-types', request_method='POST')
+    config.add_route('get_identity_type', '/api/identity-types/{id}', request_method='GET')
+    config.add_route('update_identity_type', '/api/identity-types/{id}', request_method='PUT')
+    config.add_route('delete_identity_type', '/api/identity-types/{id}', request_method='DELETE')
+
+    # GENDERS ROUTES
+    config.add_route('list_genders', '/api/genders', request_method='GET')
+    config.add_route('create_gender', '/api/genders', request_method='POST')
+    config.add_route('get_gender', '/api/genders/{id}', request_method='GET')
+    config.add_route('update_gender', '/api/genders/{id}', request_method='PUT')
+    config.add_route('delete_gender', '/api/genders/{id}', request_method='DELETE')
+
+
     # Scan all view modules to register views
     config.scan('app.views')
     
