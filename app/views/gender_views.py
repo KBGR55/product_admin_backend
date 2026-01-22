@@ -31,15 +31,20 @@ def format_gender(gender):
 
 @view_config(route_name='list_genders', renderer='json')
 def list_genders(request):
-    """Lista todos los géneros activos - sin autenticación requerida"""
+    """Lista todos los géneros - devuelve array directo"""
     try:
         db = SessionLocal()
-        genders = db.query(Gender).filter(Gender.is_active == True).all()
+        genders = db.query(Gender)\
+            .filter(Gender.is_active == True)\
+            .all()
         db.close()
-        
+
+        # Devuelve directamente el array
         return [format_gender(g) for g in genders]
+
     except Exception as e:
-        return Response(json.dumps({'error': str(e)}), status=500)
+        request.response.status = 500
+        return {'error': str(e)}
 
 @view_config(route_name='create_gender', renderer='json')
 def create_gender(request):

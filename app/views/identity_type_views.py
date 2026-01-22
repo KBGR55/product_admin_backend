@@ -31,15 +31,20 @@ def format_identity_type(identity_type):
 
 @view_config(route_name='list_identity_types', renderer='json')
 def list_identity_types(request):
-    """Lista todos los tipos de identidad activos - sin autenticación requerida"""
+    """Lista todos los tipos de identidad - devuelve array directo"""
     try:
         db = SessionLocal()
-        identity_types = db.query(IdentityType).filter(IdentityType.is_active == True).all()
+        identity_types = db.query(IdentityType)\
+            .filter(IdentityType.is_active == True)\
+            .all()
         db.close()
-        
+
+        # Devuelve directamente el array
         return [format_identity_type(it) for it in identity_types]
+
     except Exception as e:
-        return Response(json.dumps({'error': str(e)}), status=500)
+        request.response.status = 500
+        return {'error': str(e)}
 
 @view_config(route_name='create_identity_type', renderer='json')
 def create_identity_type(request):
