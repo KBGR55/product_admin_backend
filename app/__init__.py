@@ -7,6 +7,7 @@ from app.models.organization import Organization, OrganizationRole, Organization
 from app.models.product import Product
 from app.models.identity_type import IdentityType
 from app.models.gender import Gender
+from app.models.country import Country
 
 
 # Create tables
@@ -77,20 +78,26 @@ def main(global_config, **settings):
     config.add_route('update_product', '/api/organizations/{org_id}/products/{product_id}', request_method='PUT')
     config.add_route('delete_product', '/api/organizations/{org_id}/products/{product_id}', request_method='DELETE')
     
-    # IDENTITY TYPES ROUTES
+    # ==================== Identity Types Routes ====================
     config.add_route('list_identity_types', '/api/identity-types', request_method='GET')
     config.add_route('create_identity_type', '/api/identity-types', request_method='POST')
     config.add_route('get_identity_type', '/api/identity-types/{id}', request_method='GET')
     config.add_route('update_identity_type', '/api/identity-types/{id}', request_method='PUT')
     config.add_route('delete_identity_type', '/api/identity-types/{id}', request_method='DELETE')
 
-    # GENDERS ROUTES
+    # ==================== Genders Routes ====================
     config.add_route('list_genders', '/api/genders', request_method='GET')
     config.add_route('create_gender', '/api/genders', request_method='POST')
     config.add_route('get_gender', '/api/genders/{id}', request_method='GET')
     config.add_route('update_gender', '/api/genders/{id}', request_method='PUT')
     config.add_route('delete_gender', '/api/genders/{id}', request_method='DELETE')
 
+    # ==================== Countries Routes ====================
+    config.add_route('list_countries', '/api/countries', request_method='GET')
+    config.add_route('create_country', '/api/countries', request_method='POST')
+    config.add_route('get_country', '/api/countries/{id}', request_method='GET')
+    config.add_route('update_country', '/api/countries/{id}', request_method='PUT')
+    config.add_route('delete_country', '/api/countries/{id}', request_method='DELETE')
 
     # Scan all view modules to register views
     config.scan('app.views')

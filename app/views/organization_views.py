@@ -51,6 +51,9 @@ def list_public_organizations(request):
                 {
                     'id': org.id,
                     'name': org.name,
+                    'legal_name': org.legal_name,
+                    'email': org.email,
+                    'country_id': org.country_id,
                     'org_type': org.org_type,
                     'description': org.description,
                     'primary_color': org.primary_color,
@@ -60,7 +63,6 @@ def list_public_organizations(request):
                     'address': org.address,
                     'is_active': org.is_active,
                     'extra_data': org.extra_data,
-                    'code_telephone': org.code_telephone,
                     'telephone': org.telephone,
                     'created_at': org.created_at.isoformat()
                 }
@@ -88,11 +90,7 @@ def create_org(request):
 
         # Validar email único
         if db.query(Organization).filter(Organization.email == data['email']).first():
-            return Response(
-                json_body({'error': 'El correo de organización ya existe'}),
-                status=400,
-                content_type='application/json'
-            )
+            return json_response({'error': 'El correo de organización ya existe'}, status=400)
 
         new_org = Organization(
             name=data['name'],
@@ -100,7 +98,7 @@ def create_org(request):
             legal_name=data['legal_name'],
             org_type=data['org_type'],
             description=data.get('description'),
-            code_telephone=data.get('code_telephone'),
+            country_id=data.get('country_id'),
             telephone=data.get('telephone'),
             owner_id=user_id,
             primary_color=data.get('primary_color', '#000000'),
@@ -131,19 +129,11 @@ def create_org(request):
 
     except KeyError as e:
         db.rollback()
-        return Response(
-            json_body({'error': f'Campo requerido faltante: {str(e)}'}),
-            status=400,
-            content_type='application/json'
-        )
+        return json_response({'error': f'Campo requerido faltante: {str(e)}'}, status=400)
 
     except Exception as e:
         db.rollback()
-        return Response(
-            json_body({'error': str(e)}),
-            status=500,
-            content_type='application/json'
-        )
+        return json_response({'error': str(e)}, status=500)
 
     finally:
         db.close()  
@@ -161,11 +151,7 @@ def get_org(request):
 
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
-            return Response(
-                json_body({'error': 'Organización no encontrada'}),
-                status=404,
-                content_type='application/json'
-            )
+            return json_response({'error': 'Organización no encontrada'}, status=404)
 
         return {
             'id': org.id,
@@ -174,7 +160,7 @@ def get_org(request):
             'legal_name': org.legal_name,
             'org_type': org.org_type,
             'description': org.description,
-            'code_telephone': org.code_telephone,
+            'country_id': org.country_id,
             'telephone': org.telephone,
             'owner_id': org.owner_id,
             'primary_color': org.primary_color,
@@ -189,11 +175,7 @@ def get_org(request):
 
     except Exception as e:
         db.rollback()
-        return Response(
-            json_body({'error': str(e)}),
-            status=500,
-            content_type='application/json'
-        )
+        return json_response({'error': str(e)}, status=500)
 
     finally:
         db.close()
@@ -224,7 +206,7 @@ def list_org(request):
                     'legal_name': org.legal_name,
                     'org_type': org.org_type,
                     'description': org.description,
-                    'code_telephone': org.code_telephone,
+                    'country_id': org.country_id,
                     'telephone': org.telephone,
                     'primary_color': org.primary_color,
                     'secondary_color': org.secondary_color,
@@ -240,11 +222,7 @@ def list_org(request):
 
     except Exception as e:
         db.rollback()  
-        return Response(
-            json_body({'error': str(e)}),
-            status=500,
-            content_type='application/json'
-        )
+        return json_response({'error': str(e)}, status=500)
 
     finally:
         db.close()     
@@ -262,25 +240,17 @@ def update_org(request):
 
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
-            return Response(
-                json_body({'error': 'Organización no encontrada'}),
-                status=404,
-                content_type='application/json'
-            )
+            return json_response({'error': 'Organización no encontrada'}, status=404)
 
         if org.owner_id != user_id:
-            return Response(
-                json_body({'error': 'No tienes permiso para actualizar esta organización'}),
-                status=403,
-                content_type='application/json'
-            )
+            return json_response({'error': 'No tienes permiso para actualizar esta organización'}, status=403)
 
         updatable_fields = [
             'name',
             'legal_name',
             'org_type',
             'description',
-            'code_telephone',
+            'country_id',
             'telephone',
             'primary_color',
             'secondary_color',
@@ -299,11 +269,7 @@ def update_org(request):
 
     except Exception as e:
         db.rollback()
-        return Response(
-            json_body({'error': str(e)}),
-            status=500,
-            content_type='application/json'
-        )
+        return json_response({'error': str(e)}, status=500)
 
     finally:
         db.close()
@@ -321,11 +287,11 @@ def delete_org(request):
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
             db.close()
-            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
+            return json_response({'error': 'Organización no encontrada'}, status=404)
         
         if org.owner_id != user_id:
             db.close()
-            return Response(json_body({'error': 'No tienes permiso para eliminar esta organización'}), status=403)
+            return json_response({'error': 'No tienes permiso para eliminar esta organización'}, status=403)
         
         db.delete(org)
         db.commit()
@@ -333,7 +299,7 @@ def delete_org(request):
         
         return {'message': 'Organización eliminada exitosamente'}
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=500)
+        return json_response({'error': str(e)}, status=500)
 
 @view_config(route_name='add_employee', renderer='json')
 def add_employee(request):
@@ -350,17 +316,17 @@ def add_employee(request):
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
             db.close()
-            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
+            return json_response({'error': 'Organización no encontrada'}, status=404)
         
         if org.owner_id != user_id:
             db.close()
-            return Response(json_body({'error': 'No tienes permiso para agregar empleados'}), status=403)
+            return json_response({'error': 'No tienes permiso para agregar empleados'}, status=403)
         
         new_user_id = data.get('user_id')
         user = db.query(User).filter(User.id == new_user_id).first()
         if not user:
             db.close()
-            return Response(json_body({'error': 'Usuario no encontrado'}), status=404)
+            return json_response({'error': 'Usuario no encontrado'}, status=404)
         
         # Verificar que el empleado no exista
         if db.query(OrganizationEmployee).filter(
@@ -368,7 +334,7 @@ def add_employee(request):
             OrganizationEmployee.user_id == new_user_id
         ).first():
             db.close()
-            return Response(json_body({'error': 'El usuario ya es empleado de esta organización'}), status=400)
+            return json_response({'error': 'El usuario ya es empleado de esta organización'}, status=400)
         
         new_employee = OrganizationEmployee(
             org_id=org_id,
@@ -386,9 +352,9 @@ def add_employee(request):
             'employee_id': new_employee.id
         }
     except KeyError as e:
-        return Response(json_body({'error': f'Campo requerido faltante: {str(e)}'}), status=400)
+        return json_response({'error': f'Campo requerido faltante: {str(e)}'}, status=400)
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=500)
+        return json_response({'error': str(e)}, status=500)
 
 @view_config(route_name='remove_employee', renderer='json')
 def remove_employee(request):
@@ -405,11 +371,11 @@ def remove_employee(request):
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
             db.close()
-            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
+            return json_response({'error': 'Organización no encontrada'}, status=404)
         
         if org.owner_id != user_id:
             db.close()
-            return Response(json_body({'error': 'No tienes permiso para remover empleados'}), status=403)
+            return json_response({'error': 'No tienes permiso para remover empleados'}, status=403)
         
         employee = db.query(OrganizationEmployee).filter(
             OrganizationEmployee.id == employee_id,
@@ -418,7 +384,7 @@ def remove_employee(request):
         
         if not employee:
             db.close()
-            return Response(json_body({'error': 'Empleado no encontrado'}), status=404)
+            return json_response({'error': 'Empleado no encontrado'}, status=404)
         
         org.employee_count = max(0, (org.employee_count or 1) - 1)
         db.delete(employee)
@@ -427,7 +393,7 @@ def remove_employee(request):
         
         return {'message': 'Empleado removido exitosamente'}
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=500)
+        return json_response({'error': str(e)}, status=500)
 
 @view_config(route_name='list_employees', renderer='json')
 def list_employees(request):
@@ -441,7 +407,7 @@ def list_employees(request):
     try:
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org:
-            return Response(json_body({'error': 'Organización no encontrada'}), status=404)
+            return json_response({'error': 'Organización no encontrada'}, status=404)
 
         employees = (
             db.query(OrganizationEmployee)
@@ -485,7 +451,7 @@ def create_org_role(request):
 
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org or org.owner_id != user_id:
-            return {'error': 'No tienes permiso para crear roles'}
+            return json_response({'error': 'No tienes permiso para crear roles'}, status=403)
 
         role = OrganizationRole(
             org_id=org_id,
@@ -531,7 +497,7 @@ def list_org_roles(request):
             ]
         }
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=500)
+        return json_response({'error': str(e)}, status=500)
 
 @view_config(route_name='assign_org_role', renderer='json')
 def assign_org_role(request):
@@ -549,7 +515,7 @@ def assign_org_role(request):
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org or org.owner_id != user_id:
             db.close()
-            return Response(json_body({'error': 'No tienes permiso para asignar roles'}), status=403)
+            return json_response({'error': 'No tienes permiso para asignar roles'}, status=403)
         
         employee = db.query(OrganizationEmployee).filter(
             OrganizationEmployee.id == employee_id,
@@ -558,7 +524,7 @@ def assign_org_role(request):
         
         if not employee:
             db.close()
-            return Response(json_body({'error': 'Empleado no encontrado'}), status=404)
+            return json_response({'error': 'Empleado no encontrado'}, status=404)
         
         role = db.query(OrganizationRole).filter(
             OrganizationRole.id == role_id,
@@ -567,11 +533,11 @@ def assign_org_role(request):
         
         if not role:
             db.close()
-            return Response(json_body({'error': 'Rol no encontrado'}), status=404)
+            return json_response({'error': 'Rol no encontrado'}, status=404)
         
         if role in employee.roles:
             db.close()
-            return Response(json_body({'error': 'El empleado ya tiene este rol'}), status=400)
+            return json_response({'error': 'El empleado ya tiene este rol'}, status=400)
         
         employee.roles.append(role)
         db.commit()
@@ -579,7 +545,7 @@ def assign_org_role(request):
         
         return {'message': 'Rol asignado exitosamente al empleado'}
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=500)
+        return json_response({'error': str(e)}, status=500)
 
 @view_config(route_name='remove_org_role', renderer='json')
 def remove_org_role(request):
@@ -597,7 +563,7 @@ def remove_org_role(request):
         org = db.query(Organization).filter(Organization.id == org_id).first()
         if not org or org.owner_id != user_id:
             db.close()
-            return Response(json_body({'error': 'No tienes permiso para remover roles'}), status=403)
+            return json_response({'error': 'No tienes permiso para remover roles'}, status=403)
         
         employee = db.query(OrganizationEmployee).filter(
             OrganizationEmployee.id == employee_id,
@@ -606,7 +572,7 @@ def remove_org_role(request):
         
         if not employee:
             db.close()
-            return Response(json_body({'error': 'Empleado no encontrado'}), status=404)
+            return json_response({'error': 'Empleado no encontrado'}, status=404)
         
         role = db.query(OrganizationRole).filter(
             OrganizationRole.id == role_id,
@@ -615,11 +581,11 @@ def remove_org_role(request):
         
         if not role:
             db.close()
-            return Response(json_body({'error': 'Rol no encontrado'}), status=404)
+            return json_response({'error': 'Rol no encontrado'}, status=404)
         
         if role not in employee.roles:
             db.close()
-            return Response(json_body({'error': 'El empleado no tiene este rol'}), status=400)
+            return json_response({'error': 'El empleado no tiene este rol'}, status=400)
         
         employee.roles.remove(role)
         db.commit()
@@ -627,4 +593,4 @@ def remove_org_role(request):
         
         return {'message': 'Rol removido exitosamente del empleado'}
     except Exception as e:
-        return Response(json_body({'error': str(e)}), status=500)
+        return json_response({'error': str(e)}, status=500)
